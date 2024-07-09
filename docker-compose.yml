@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${NODE_ENV} # image based on mode development or production
+    container_name: ${CONTAINER_NAME}
+    environment:
+      - NODE_ENV=${NODE_ENV}
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - db
+    volumes:
+      - ./:/home/node/app
+    networks:
+      - mindaid-network
+    restart: always
+    command: sh -c 'npm install && npx sequelize-cli db:migrate && if [ "$NODE_ENV" = "development" ]; then npm run dev; else pm2-runtime bin/www; fi'
+  db:
+    image: postgres:16
+    container_name: ${DB_DATABASE}
+    ports:
+      - "${DB_PORT}:5432" #port public untuk remote db
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+      PGPORT: 5432
+      TZ: Asia/Jakarta
+    networks:
+      - mindaid-network
+    volumes:
+      #setting untuk membuat data tetap utuh walaupun container di drop/restart
+      - ./postgres-data:/var/lib/postgresql/data
+    restart: always
+
+networks:
+  mindaid-network:
+    driver: bridge
